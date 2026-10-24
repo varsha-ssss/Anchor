@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Anchor monitors your heart rate, blood oxygen, respiratory rate, and body temperature through your Apple Watch to detect potential health emergencies and alert your contacts.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Anchor needs to record workout sessions on your Apple Watch to enable continuous health monitoring.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Anchor uses motion data to detect falls and periods of unresponsiveness that may indicate an emergency.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>processing</string>
+    </array>
+    <key>CFBundleDisplayName</key>
+    <string>Anchor</string>
+</dict>
+</plist>

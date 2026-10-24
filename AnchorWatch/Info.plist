@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Anchor monitors your vitals to detect potential health emergencies.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Anchor records workout sessions to enable continuous heart rate monitoring.</string>
+    <key>WKBackgroundModes</key>
+    <array>
+        <string>workout-processing</string>
+        <string>self-care</string>
+    </array>
+    <key>CFBundleDisplayName</key>
+    <string>Anchor</string>
+    <key>WKCompanionAppBundleIdentifier</key>
+    <string>com.anchor.app</string>
+</dict>
+</plist>
