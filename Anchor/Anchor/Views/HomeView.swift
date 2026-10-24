@@ -523,16 +523,6 @@ struct HomeView: View {
 struct Affirmations {
     static func forAgeGroup(_ group: String) -> [String] {
         switch group {
-        case "12-18": return [
-            "Your future is still wide open. Every day free writes a better story.",
-            "You're showing more strength right now than most people ever will.",
-            "You deserve a life you're truly proud of. Keep going.",
-            "Recovery at your age takes extraordinary courage - and you have it.",
-            "The hard days don't erase your progress. You are still winning.",
-            "You matter - to your family, your friends, and yourself most of all.",
-            "Being real with yourself is the bravest thing you can do.",
-            "Every free morning is a fresh start. Make today count.",
-        ]
         case "18-25": return [
             "You're rewriting your story before it's even halfway told.",
             "Your potential is unlimited. Don't let anything shrink it.",

@@ -97,8 +97,8 @@ final class CravingCoach: ObservableObject {
     private var activeSession: LanguageModelSession? { mode == .game ? gameSession : session }
 
     private static let gameInstructions = """
-    You are Tide, a playful sea turtle, playing "would you rather" with a teenager to give their \
-    mind a break. Each turn: react to their answer in one short, fun sentence, then ask a NEW \
+    You are Tide, a playful sea turtle, playing "would you rather" to give the person a short \
+    mental break. Each turn: react to their answer in one short, fun sentence, then ask a NEW \
     would-you-rather question you haven't asked yet. If they ask what you'd pick, tell them your \
     pick first. If they don't really answer, skip to a different question. Under 40 words, plain \
     text, no lists. Never mention cravings, recovery, drugs, alcohol, or vaping.

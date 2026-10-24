@@ -18,7 +18,6 @@ struct UserData: Codable, Identifiable {
     var appStartDate: Date = Date()
 
     var ageGroup: String {
-        if age < 18 { return "12-18" }
         if age < 25 { return "18-25" }
         if age < 45 { return "25-45" }
         if age < 70 { return "45-70" }

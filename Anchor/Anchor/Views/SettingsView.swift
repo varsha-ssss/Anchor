@@ -89,6 +89,11 @@ struct SettingsView: View {
             if isEditingProfile {
                 editableField("Name", text: $editingName)
                 editableField("Age", text: $editingAge, keyboard: .numberPad)
+                if (Int(editingAge) ?? 0) < 18 {
+                    Text("Anchor is for adults 18 and older.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AnchorTheme.rose)
+                }
                 editableTextArea("Your Why", text: $editingMotivation)
                 editableTextArea("Additional Info", text: $editingAdditionalInfo)
             } else {
@@ -365,7 +370,9 @@ struct SettingsView: View {
 
         if isEditingProfile {
             user.name = editingName
-            user.age = Int(editingAge) ?? user.age
+            if let newAge = Int(editingAge), newAge >= 18 {
+                user.age = newAge
+            }
             user.motivation = editingMotivation
             user.additionalInfo = editingAdditionalInfo
             isEditingProfile = false

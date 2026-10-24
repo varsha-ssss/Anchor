@@ -103,7 +103,7 @@ struct OnboardingView: View {
     private var canProceed: Bool {
         switch currentStepType {
         case .name: return !name.trimmingCharacters(in: .whitespaces).isEmpty
-        case .age: return !age.isEmpty && (Int(age) ?? 0) >= 12
+        case .age: return (Int(age) ?? 0) >= 18
         case .pickAddictions: return !selectedAddictions.isEmpty
         case .addictionSobrietyDate(let type):
             return !(sobrietyMonths[type] ?? "").isEmpty && !(sobrietyYears[type] ?? "").isEmpty
@@ -188,7 +188,12 @@ struct OnboardingView: View {
         case .name:
             styledTextField("Your first name", text: $name)
         case .age:
-            styledTextField("Your age", text: $age, keyboard: .numberPad)
+            VStack(alignment: .leading, spacing: 8) {
+                styledTextField("Your age", text: $age, keyboard: .numberPad)
+                Text("Anchor is for adults 18 and older.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(colorScheme == .dark ? AnchorTheme.mutedForegroundDark : AnchorTheme.mutedForeground)
+            }
         case .pickAddictions:
             addictionPicker
         case .addictionDuration(let type):

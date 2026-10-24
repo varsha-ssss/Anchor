@@ -1,154 +1,69 @@
-# Anchor iOS + watchOS App - Setup Guide
+# Anchor iOS app
 
-## Prerequisites
-- Xcode 15+ (with iOS 17+ and watchOS 10+ SDKs)
-- Apple Developer account (for HealthKit entitlements)
-- iPhone with paired Apple Watch (for testing real vitals)
+Anchor is a native SwiftUI recovery companion. This repository is set up for an **iPhone-only** TestFlight build of the iOS app. The Apple Watch sources under `AnchorWatch/` are not part of the Xcode project and are not in this build.
 
-## Creating the Xcode Project
+## Project
 
-Since Xcode projects (.xcodeproj) are binary/complex files that can't be
-generated as text, follow these steps to set up the project:
+Open `Anchor/Anchor.xcodeproj` in Xcode 26 or later. The shared `Anchor` scheme archives the iOS app.
 
-### Step 1: Create a new Xcode project
+| Setting | Value |
+|---|---|
+| Bundle ID | `com.varshasupreeth.anchor` |
+| Marketing version | 1.0 (`MARKETING_VERSION`) |
+| Build number | 1 (`CURRENT_PROJECT_VERSION`) — bump this for every upload |
+| Minimum iOS | 26.0 |
+| Devices | iPhone only |
+| Signing | Automatic, team `GNTAU232J6` |
+| Display name | Anchor |
+| Encryption | `ITSAppUsesNonExemptEncryption` = NO |
 
-1. Open Xcode
-2. File > New > Project
-3. Choose **iOS > App**
-4. Settings:
-   - Product Name: `Anchor`
-   - Bundle Identifier: `com.varshasupreeth.anchor`
-   - Interface: **SwiftUI**
-   - Language: **Swift**
-   - Check **Include Tests** if desired
-5. Save it inside the `Anchor-iOS/` directory
+Tide, the on-device coach, uses Apple Foundation Models and needs an iPhone with Apple Intelligence (iPhone 15 Pro or newer, Apple Intelligence turned on). Other iPhones on iOS 26 still run the rest of the app.
 
-### Step 2: Add watchOS target
+Onboarding requires age 18 or older. Profile edits cannot save an age under 18.
 
-1. File > New > Target
-2. Choose **watchOS > App**
-3. Settings:
-   - Product Name: `AnchorWatch`
-   - Bundle Identifier: `com.varshasupreeth.anchor.watchkitapp`
-   - Interface: **SwiftUI**
-   - Watch Connectivity: **Enabled**
-4. When asked, embed it in the Anchor iOS app
+## Info.plist
 
-### Step 3: Add source files to the Watch target
+There is no checked-in `Info.plist`. The target generates it (`GENERATE_INFOPLIST_FILE = YES`). Purpose strings and export compliance live in the target build settings:
 
-The iOS target already picks up everything in `Anchor/Anchor/` automatically.
-For the watchOS target:
+- `NSHealthShareUsageDescription` — heart rate, blood oxygen, and breathing rate stay on device
+- `NSLocationWhenInUseUsageDescription` — one-shot location for the emergency text
+- `ITSAppUsesNonExemptEncryption` = NO
 
-1. Drag the `AnchorWatch/` folder into the **AnchorWatch** target.
-2. Select each of these files and tick **AnchorWatch** under Target Membership
-   (File Inspector, right sidebar) so both apps share one copy:
-   - `Anchor/Anchor/CrisisAlgorithm.swift`
-   - `Anchor/Anchor/Models/AddictionType.swift`
-   - `Anchor/Anchor/Theme.swift`
+The app does not declare motion access, HealthKit write access, or the `processing` background mode. `PrivacyInfo.xcprivacy` in `Anchor/Anchor/` is part of the app target. It reports no tracking, no collected data types, and UserDefaults access reason `CA92.1`.
 
-### Step 4: Configure capabilities
+## Archive for TestFlight
 
-#### iOS Target:
-1. Select the Anchor target > Signing & Capabilities
-2. Add: **HealthKit** (check "Background Delivery" and "Clinical Health Records")
-3. Add: **Background Modes** (check "Audio, AirPlay, and Picture in Picture")
+1. Use a Mac with Xcode 26 and a paid Apple Developer Program membership. HealthKit and TestFlight both require a paid team. Confirm team `GNTAU232J6` is that membership, or change `DEVELOPMENT_TEAM` to yours.
+2. In Certificates, Identifiers & Profiles, enable **HealthKit** and **HealthKit Background Delivery** on `com.varshasupreeth.anchor`. Leave Clinical Health Records off.
+3. In App Store Connect, create the app with that bundle ID if it does not exist yet. Add a privacy policy URL and a support URL before external testing.
+4. In Xcode, select the **Anchor** scheme and **Any iOS Device (arm64)**.
+5. Product > Archive, then Distribute App > App Store Connect > Upload.
+6. After processing, answer export compliance if asked. The app uses no custom cryptography, so the exemption applies. The plist key should already mark this.
+7. Add internal testers first. External TestFlight goes through Beta App Review.
 
-#### watchOS Target:
-1. Select AnchorWatch target > Signing & Capabilities
-2. Add: **HealthKit** (check "Background Delivery")
-3. Add: **Background Modes** (check "Workout Processing" and "Self Care")
+In the test notes, say that this build is iPhone-only, that the Watch monitor is not included, that Anchor is not a medical device, and that every call or text needs a tap. **Health → Test the emergency alert** runs the alarm without contacting anyone.
 
-### Step 5: Set deployment targets
-- iOS target: iOS 17.0+
-- watchOS target: watchOS 10.0+
+Bump `CURRENT_PROJECT_VERSION` before each later upload. The shared scheme is `Anchor/Anchor.xcodeproj/xcshareddata/xcschemes/Anchor.xcscheme`.
 
-### Step 6: Add entitlements
-- Copy `Anchor/Anchor.entitlements` to the iOS target
-- Set them in Build Settings > Code Signing Entitlements
-
-### Step 7: Build & Run
-1. Select the **Anchor** scheme and an iPhone simulator/device
-2. Select the **AnchorWatch** scheme and a paired Watch simulator
-3. Build and run both
-
-## Architecture Overview
+## What this build includes
 
 ```
-Anchor-iOS/
-├── Anchor/                             # iOS app (Xcode project)
-│   └── Anchor/                         # Source files (auto-included in the iOS target)
-│       ├── AnchorApp.swift
-│       ├── CrisisAlgorithm.swift       # Shared with Watch: vital scoring + cited thresholds
-│       ├── Theme.swift                 # Shared with Watch
-│       ├── WatchConnectivityManager.swift
-│       ├── Models/
-│       │   ├── AddictionType.swift     # Shared with Watch: per-addiction config + copy
-│       │   └── UserData.swift
-│       ├── Services/
-│       │   ├── HealthKitManager.swift  # Live queries + background delivery, freshness checks
-│       │   ├── CrisisMonitorService.swift
-│       │   ├── EmergencyService.swift  # Alarm, "Are you okay?" check, bystander mode
-│       │   ├── LocationProvider.swift  # One-shot location for the emergency text
-│       │   └── CravingCoach.swift      # "Talk to Tide" on-device AI + safety filter
-│       └── Views/                      # Includes CravingCoachView, EmergencyView
-│
-└── AnchorWatch/                        # watchOS app (needs its own target, see Step 2)
+Anchor/
+├── Anchor.xcodeproj/          # iOS app, shared Anchor scheme
+└── Anchor/
+    ├── AnchorApp.swift
+    ├── PrivacyInfo.xcprivacy
+    ├── CrisisAlgorithm.swift
+    ├── Theme.swift
+    ├── WatchConnectivityManager.swift
+    ├── Models/
+    ├── Services/              # HealthKit, emergency alarm, on-device Tide
+    └── Views/
+AnchorWatch/                   # watchOS sources only — not a target
 ```
 
-## How Crisis Detection Works
+Health data, journal entries, and Tide chats stay on the device. There is no backend. The only web URL is a `maps.apple.com` link placed in an emergency text the person must send themselves.
 
-1. While monitoring is on, the Watch runs a workout session, which gives heart rate
-   every few seconds. Blood oxygen is measured periodically. Breathing rate is only
-   measured during sleep, so the Watch scores without it.
-2. Each new reading is scored by `CrisisAlgorithm` for every addiction being tracked:
-   - Readings older than a few minutes are ignored.
-   - A full alert needs **two separate danger signs at once**, so one bad sensor
-     reading can never trigger it.
-   - Thresholds and their sources (AHA, NIH, NIAAA, SAMHSA, WHO) are documented at
-     the top of `CrisisAlgorithm.swift`.
-3. The iPhone also asks HealthKit to wake it when new vitals arrive (background
-   delivery). iOS decides how often that happens, so the Watch is the main monitor.
+## Not a medical device
 
-## What Happens in an Alert
-
-1. **"Are you okay?"** A 30-second countdown with a loud alarm, a spoken alert, and a
-   notification in case the app isn't open. Tapping **I'M OKAY** stops it.
-2. **No response: bystander mode.** The phone keeps alarming and speaks instructions
-   to anyone nearby (for example "give naloxone if you have it"). It brings up the
-   911 call prompt and shows one-tap buttons to call 911, call each contact, and text
-   all contacts a pre-written message with a map link.
-3. iOS always requires a tap before a call or text goes out. Anchor is built around
-   making that one tap as easy as possible for whoever is nearby.
-
-Use **Health → Test the emergency alert** to see the whole flow safely. Test mode
-never calls or texts anyone.
-
-## Talk to Tide (AI craving coach)
-
-- Runs on **Apple's on-device model** (Foundation Models, iOS 26). Nothing leaves
-  the phone and chats are never saved. It needs an Apple Intelligence iPhone
-  (15 Pro or newer); other phones see the coping tools and hotlines instead.
-- **Safety filter first:** every message is checked with plain phrase matching
-  before the AI sees it.
-  - Self-harm → 988 card.
-  - Overdose or medical danger → 911 card.
-  - A slip → a no-shame card plus a lowered-tolerance safety warning.
-  The first two never reach the AI.
-- Uses **motivational interviewing**: one question at a time, the person's own
-  reasons, and short replies. It can quote the person's letters to their future self.
-- When someone says they want to use, the app adds a direct "reflect, then ask"
-  note to the prompt. If Apple's filter blocks the AI's reply, a hand-written
-  motivational interviewing reply is shown instead of "I can't help."
-- **Output check:** any AI reply that okays using is replaced before it's shown.
-- **Distraction mode:** a request for a game or a distraction starts "would you
-  rather" in a separate, short AI session with no recovery context, so it stays
-  light and never brings up cravings.
-- The screen always says Tide is an AI, not a counselor.
-
-## Important Notes
-
-- **Not a medical device.** Anchor can miss emergencies or raise false alarms. It
-  adds a layer of safety and does not replace people or 911.
-- **Testing**: Use a real Apple Watch for real vitals. Simulators have no HealthKit data.
-- **Privacy**: All health data, chats, and journal entries stay on the device.
-- **Battery**: The Watch workout session uses more battery while monitoring is on.
+Anchor can miss emergencies or raise false alarms. It does not replace people or 911. iOS always requires a tap before a call or text goes out.
