@@ -7,7 +7,6 @@ struct OnboardingView: View {
     @State private var age = ""
     @State private var selectedAddictions: Set<AddictionType> = []
 
-    // Per-addiction states
     @State private var usageDurations: [AddictionType: String] = [:]
     @State private var usageFrequencies: [AddictionType: String] = [:]
     @State private var sobrietyMonths: [AddictionType: String] = [:]

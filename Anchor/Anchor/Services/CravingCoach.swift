@@ -2,22 +2,15 @@ import Foundation
 import Combine
 import FoundationModels
 
-/// "Talk to Tide" — an AI craving coach that runs entirely on the iPhone using Apple's
-/// on-device model (Foundation Models framework). Nothing the person types leaves the phone,
-/// and the conversation is never saved.
-///
-/// Safety design:
-/// 1. `SafetyCheck` runs on every message *before* the AI sees it. Mentions of self-harm or a
-///    medical emergency skip the AI completely and show 988 / 911 / emergency contacts.
-/// 2. The AI is scoped to one job — getting through the next few minutes of a craving — using
-///    motivational interviewing (questions + the person's own reasons), never lectures,
-///    medical advice, or arguments.
-/// 3. The screen always says Tide is an AI, not a counselor.
+// Talk to Tide - craving coach using Apple's on-device model (FoundationModels).
+// nothing leaves the phone and chats aren't saved.
+// SafetyCheck runs BEFORE the model sees anything. self-harm / medical stuff skips
+// the AI entirely and shows 988/911/contacts instead. the model only does MI-style
+// "get through the next few minutes", no medical advice
 struct CoachMessage: Identifiable, Equatable {
     enum Role: Equatable {
         case user
         case tide
-        /// A fixed, non-AI card with crisis resources.
         case safety(SafetyCheck.Flag)
     }
 
@@ -28,12 +21,11 @@ struct CoachMessage: Identifiable, Equatable {
 
 enum SafetyCheck {
     enum Flag: Equatable {
-        /// Self-harm or suicidal thoughts → 988 Suicide & Crisis Lifeline.
+        // -> 988
         case selfHarm
-        /// Overdose or other medical danger → 911.
+        // -> 911
         case medicalEmergency
-        /// They used/drank after a stretch of sobriety. Not an emergency, but needs a
-        /// no-shame response and (for drugs) the lowered-tolerance safety warning.
+        // relapse. not an emergency but drugs need the lower tolerance warning
         case slip
     }
 
@@ -55,8 +47,7 @@ enum SafetyCheck {
         "had a drink", "got drunk", "got high", "i caved", "i gave in", "used again", "drank again",
     ]
 
-    /// Most serious match wins. Plain phrase matching on purpose: it's predictable,
-    /// testable, and doesn't depend on the AI noticing.
+    // plain string matching on purpose so it doesn't depend on the model catching it
     static func classify(_ text: String) -> Flag? {
         let normalized = " " + text.lowercased()
             .replacingOccurrences(of: "’", with: "'")
@@ -87,12 +78,10 @@ final class CravingCoach: ObservableObject {
 
     let availability: Availability
     private let instructions: String
-    /// The person's own reason for recovery, quoted back in hand-written replies.
     private let reason: String?
     private let userName: String?
     private var session: LanguageModelSession?
-    /// Games get their own short session: the small on-device model plays much better without the
-    /// coaching rules and personal details mixed in.
+    // separate session for games, the small model gets confused w/ the coaching prompt mixed in
     private var gameSession: LanguageModelSession?
     private var activeSession: LanguageModelSession? { mode == .game ? gameSession : session }
 
@@ -143,7 +132,7 @@ final class CravingCoach: ObservableObject {
         let flag = SafetyCheck.classify(text)
         if let flag {
             messages.append(CoachMessage(role: .safety(flag), text: ""))
-            // Emergencies never go to the AI — the safety card is the whole response.
+            // emergencies never hit the model
             if flag != .slip { return }
         }
 
@@ -153,8 +142,8 @@ final class CravingCoach: ObservableObject {
             mode = .urge
             prompt += "\n\n(Note for Tide: they just told you they slipped. Respond with zero judgment. Ask if they're safe right now and gently ask what happened.)"
         } else if mode == .urge && !Self.wantsDistraction(text) {
-            // Later turns of a craving conversation. A small model loses track and re-asks
-            // "what's making you feel that way?", so each turn gets one concrete next step.
+            // model kept re-asking "what's making you feel that way?" every turn,
+            // so feed it one concrete step at a time
             prompt += Self.urgeFollowUpNote(turn: urgeTurn, isQuestion: text.contains("?"))
             urgeTurn += 1
         } else if Self.isUrge(text) {
@@ -190,13 +179,13 @@ final class CravingCoach: ObservableObject {
                 reply = Self.removingName(name, from: reply)
             }
             messages[index].text = reply
-            // Second safety layer, on the AI's output: never let a reply okay using.
+            // check output too, never let it say using is ok
             if Self.okaysUsing(messages[index].text) {
                 messages[index].text = nextUrgeFallback()
             }
             isResponding = false
         } catch LanguageModelSession.GenerationError.exceededContextWindowSize {
-            // Long chat: start a fresh session with the same instructions and try once more.
+            // context too long -> new session, retry once
             messages.remove(at: index)
             isResponding = false
             if mode == .game {
@@ -206,8 +195,8 @@ final class CravingCoach: ObservableObject {
             }
             if !isRetry { await respond(to: prompt, isUrge: isUrge, isRetry: true) }
         } catch {
-            // Apple's built-in safety filter sometimes blocks replies about drugs or alcohol, even
-            // supportive ones. Never answer an urge with "I can't help" — use a written reply instead.
+            // apple's guardrails block a lot of drug/alcohol replies even supportive ones.
+            // don't want "I can't help with that" during a craving so use a canned reply
             messages[index].text = isUrge ? nextUrgeFallback() : "I'm still here with you. Can you tell me a little more about what's going on right now?"
             isResponding = false
         }
@@ -216,17 +205,13 @@ final class CravingCoach: ObservableObject {
     private var urgeFallbackIndex = 0
     private enum Mode {
         case talking
-        /// They said they want to use (or slipped): blocked replies fall back to written MI replies.
         case urge
-        /// Playing a distraction game: no interviewing, just the next round.
         case game
     }
     private var mode: Mode = .talking
     private var urgeTurn = 0
 
-    /// Next steps for a craving conversation, in order: their reasons, a plan for the
-    /// situation, riding out the urge, then tomorrow. This mirrors how a counselor moves from
-    /// listening to planning.
+    // order: reasons -> plan -> ride out the urge -> tomorrow
     private static let urgeMoves = [
         "ask what made them want to stop in the first place.",
         "help them make one simple plan for this exact situation, like what they'll say if someone offers them something, who they can stick with, or when they'll leave.",
@@ -258,7 +243,7 @@ final class CravingCoach: ObservableObject {
         return permissivePhrases.contains { lowered.contains($0) }
     }
 
-    /// Hand-written motivational-interviewing replies, used when the AI's reply gets blocked.
+    // fallbacks for when the model gets blocked
     private func nextUrgeFallback() -> String {
         var replies = [
             "Thank you for telling me instead of just doing it. That pull sounds really strong right now. What's making today so hard?",
@@ -287,8 +272,7 @@ final class CravingCoach: ObservableObject {
         return urgePhrases.contains { lowered.contains($0) }
     }
 
-    /// Drops sentences copied word for word from Tide's previous reply (the small model
-    /// sometimes repeats itself when the person just says "ok").
+    // model repeats itself a lot when user just says "ok"
     static func removingRepeats(_ text: String, previous: String) -> String {
         let sentences = sentenceSplit(text)
         let earlier = Set(sentenceSplit(previous).map { $0.lowercased() })
@@ -301,8 +285,7 @@ final class CravingCoach: ObservableObject {
         "doing amazing", "i believe in you", "i'm confident you",
     ]
 
-    /// Motivational interviewing avoids empty praise; the model adds it anyway, so drop those
-    /// sentences (as long as something else is left).
+    // strip "great job!" type stuff (MI avoids empty praise), unless that's all there is
     static func removingCheerleading(_ text: String) -> String {
         let kept = sentenceSplit(text).filter { sentence in
             let lowered = sentence.lowercased().replacingOccurrences(of: "’", with: "'")
@@ -311,7 +294,7 @@ final class CravingCoach: ObservableObject {
         return kept.isEmpty ? text : kept.joined(separator: " ")
     }
 
-    /// Saying someone's name in every message feels scripted, so only allow it every other reply.
+    // using the name every message felt weird
     static func removingName(_ name: String, from text: String) -> String {
         guard !name.isEmpty else { return text }
         var result = text
@@ -333,7 +316,7 @@ final class CravingCoach: ObservableObject {
         return result
     }
 
-    /// The token limit can cut a reply mid-sentence; end it at the last full sentence instead.
+    // token limit cuts off mid sentence sometimes
     static func trimToLastSentence(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let last = trimmed.last, !".?!\"')".contains(last),
@@ -346,20 +329,18 @@ final class CravingCoach: ObservableObject {
         "riddle", "trivia", "would you rather", "tell me a story", "tell me a joke", "joke", "fun fact",
     ]
 
-    /// Small on-device models follow a direct nudge more reliably than general instructions,
-    /// so distraction requests get an explicit note added to the prompt.
+    // small model listens to a direct nudge better than the general instructions
     static func wantsDistraction(_ text: String) -> Bool {
         let lowered = text.lowercased()
         return distractionPhrases.contains { lowered.contains($0) }
     }
 
-    /// The model sometimes answers in markdown (bold, tables). The chat bubble shows plain text,
-    /// so strip the symbols instead of showing them raw.
+    // model sometimes outputs markdown, bubble is plain text
     static func plainText(_ text: String) -> String {
         text
             .components(separatedBy: "\n")
             .filter { line in
-                // Drop table divider rows like "|:-----|" or "------".
+                // table rows like |:----|
                 let stripped = line.trimmingCharacters(in: .whitespaces)
                 return stripped.isEmpty || stripped.contains(where: { $0.isLetter || $0.isNumber })
             }
@@ -380,7 +361,6 @@ final class CravingCoach: ObservableObject {
             .joined(separator: "\n")
     }
 
-    // MARK: - Instructions
 
     private static func buildInstructions(user: UserData?, store: DataStore) -> String {
         var text = """

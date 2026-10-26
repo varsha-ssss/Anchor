@@ -75,7 +75,6 @@ struct HealthMetrics: Codable {
     var wristTemperature: Double?
     var fallDetected: Bool
     var lastUpdated: Date
-    /// When each reading was actually measured, so stale values aren't treated as current.
     var heartRateDate: Date?
     var bloodOxygenDate: Date?
     var respiratoryRateDate: Date?

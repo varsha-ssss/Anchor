@@ -227,7 +227,7 @@ struct ContentView: View {
         }
     }
 
-    /// Monitoring is a saved setting, so turn it back on after the app relaunches.
+    // monitoring is saved, so restart it on relaunch
     private func resumeMonitoringIfEnabled() {
         guard store.isMonitoringEnabled, let types = store.userData?.addictionTypes else { return }
         monitor.startMonitoring(for: types)

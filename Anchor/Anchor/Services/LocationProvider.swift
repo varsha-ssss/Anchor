@@ -1,8 +1,7 @@
 import Foundation
 import CoreLocation
 
-/// One-shot location lookup used only during an emergency, so the text to emergency
-/// contacts can say *where* the person is. Never tracked, stored, or sent anywhere else.
+// only used during an emergency for the text to contacts. not stored or tracked
 class LocationProvider: NSObject, CLLocationManagerDelegate {
     static let shared = LocationProvider()
 
@@ -15,8 +14,7 @@ class LocationProvider: NSObject, CLLocationManagerDelegate {
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
     }
 
-    /// Asked when the user turns on crisis monitoring, so the permission prompt never
-    /// appears in the middle of an emergency.
+    // called when monitoring is turned on so the prompt doesn't pop up mid-emergency
     func requestPermission() {
         if manager.authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()

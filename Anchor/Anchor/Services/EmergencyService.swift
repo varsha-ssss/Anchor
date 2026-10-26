@@ -4,15 +4,9 @@ import AVFoundation
 import UIKit
 import UserNotifications
 
-/// Runs the on-phone emergency flow.
-///
-/// iOS never lets a third-party app place a phone call or send a text on its own — the user
-/// (or someone nearby) always has to confirm. So instead of pretending to "auto-call 911",
-/// Anchor does the things an app *can* do to get a person help fast:
-///   1. `.checking`  – 30-second "Are you okay?" countdown with a loud alarm and spoken alert.
-///   2. `.needsHelp` – no response, so the alarm keeps going and the phone speaks to anyone
-///      nearby, puts the 911 call prompt on screen, and offers a pre-written text (with location)
-///      for the person's emergency contacts.
+// apps can't actually call or text on their own in iOS, someone has to confirm.
+// so: .checking = 30s "are you okay" countdown + alarm
+//     .needsHelp = keep alarm going, talk to bystanders, show the 911 prompt + text to contacts
 class EmergencyService: ObservableObject {
     static let shared = EmergencyService()
 
@@ -27,7 +21,7 @@ class EmergencyService: ObservableObject {
     @Published var phase: Phase = .checking
     @Published var emergencyCountdown: Int = EmergencyService.countdownSeconds
     @Published private(set) var activeAssessment: CrisisAssessment?
-    /// Practice run from the Health screen: same screens and alarm, but never opens the 911 prompt on its own.
+    // test mode from Health tab, never opens the 911 prompt
     @Published private(set) var isTest = false
 
     private var audioPlayer: AVAudioPlayer?
@@ -89,7 +83,6 @@ class EmergencyService: ObservableObject {
         WatchConnectivityManager.shared.sendMessage(.emergencyCancelled)
     }
 
-    /// No response during the countdown: switch to bystander mode.
     private func escalate() {
         phase = .needsHelp
         let script = activeAssessment?.addictionType.bystanderSpeech ?? AddictionType.drugs.bystanderSpeech
@@ -97,7 +90,7 @@ class EmergencyService: ObservableObject {
         bystanderTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             self?.speakAlert(script)
         }
-        // Puts the system "Call 911?" confirmation on screen so anyone nearby only needs one tap.
+        // shows the system call prompt so someone nearby just has to tap
         call911()
     }
 
@@ -111,7 +104,6 @@ class EmergencyService: ObservableObject {
         UIApplication.shared.open(url)
     }
 
-    /// Text for the emergency contacts, including a map link when a location fix is available.
     func emergencyTextBody(userName: String) -> String {
         let name = userName.isEmpty ? "I" : userName
         var body = (isTest ? "TEST ONLY, NOT A REAL EMERGENCY. " : "") + "EMERGENCY: \(name) may need help right now. Anchor detected a possible health emergency and got no response. Please call or come check on them. If you can't reach them, call 911."
@@ -121,7 +113,7 @@ class EmergencyService: ObservableObject {
         return body
     }
 
-    // MARK: - Notification (for when the app isn't on screen)
+    // notification in case app isn't open
 
     static func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -137,7 +129,6 @@ class EmergencyService: ObservableObject {
         UNUserNotificationCenter.current().add(request)
     }
 
-    // MARK: - Alarm
 
     private func configureAudioSession() {
         do {

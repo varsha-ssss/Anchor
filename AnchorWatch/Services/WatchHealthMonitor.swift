@@ -22,11 +22,10 @@ class WatchHealthMonitor: NSObject, ObservableObject {
     private var oxygenQuery: HKAnchoredObjectQuery?
     private var assessmentTimer: Timer?
 
-    /// When each value was measured, so old readings aren't judged as if they were current.
     private var heartRateDate: Date?
     private var bloodOxygenDate: Date?
 
-    /// Set by the iPhone app when monitoring starts (see `WatchAppDelegate`).
+    // set from the phone, see WatchAppDelegate
     var activeAddictionTypes: [AddictionType] = [.drugs]
 
     func requestAuthorization() async -> Bool {

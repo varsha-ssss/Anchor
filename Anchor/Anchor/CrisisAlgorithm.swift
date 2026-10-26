@@ -1,23 +1,16 @@
 import Foundation
 
-/// Shared by the iPhone app and the Apple Watch app (add this file to both targets).
-///
-/// Anchor is not a medical device. These thresholds come from public clinical guidance
-/// (sources below) and are tuned to be conservative: a full alert needs at least two
-/// independent danger signs at once, so a single bad sensor reading can't set it off.
-///
-/// Sources:
-/// - Normal adult resting heart rate 60–100 bpm; bradycardia < 60, severe < 40.
-///   American Heart Association, "Bradycardia: Slow Heart Rate".
-/// - Normal adult breathing rate 12–20 breaths/min. MedlinePlus (NIH), "Vital signs".
-/// - Alcohol overdose signs include "slow breathing (fewer than 8 breaths per minute)" and
-///   irregular breathing. NIAAA, "Understanding the Dangers of Alcohol Overdose".
-/// - Opioid overdose signs: slow or stopped breathing, unresponsiveness, blue lips/nails
-///   (low oxygen). SAMHSA, "Opioid Overdose Prevention and Response Toolkit".
-/// - Blood oxygen (SpO2) below 90% is hypoxemia; normal is 95–100%.
-///   WHO, "Pulse Oximetry Training Manual".
-/// - Apple Watch blood oxygen readings are not intended for medical use (Apple), which is
-///   why SpO2 alone can never trigger a critical alert here.
+// used by both the phone and watch targets
+//
+// NOT a medical device. thresholds are from public guidance, and a critical alert
+// needs 2+ separate danger signs so one bad sensor reading can't trigger it.
+// sources:
+//   AHA "Bradycardia: Slow Heart Rate" - resting HR 60-100, <60 slow, <40 severe
+//   MedlinePlus (NIH) "Vital signs" - breathing 12-20/min
+//   NIAAA "Understanding the Dangers of Alcohol Overdose" - <8 breaths/min
+//   SAMHSA "Opioid Overdose Prevention and Response Toolkit" - slow/stopped breathing, low O2
+//   WHO "Pulse Oximetry Training Manual" - SpO2 <90% is hypoxemia, normal 95-100
+//   Apple says watch SpO2 isn't for medical use, so SpO2 alone never makes it critical
 
 struct VitalSnapshot {
     let heartRate: Double?
@@ -73,23 +66,22 @@ struct CrisisAssessment {
 class CrisisAlgorithm {
 
     struct Thresholds {
-        // Low heart rate (bradycardia). AHA: < 60 is slow, < 40 is severe.
+        // bradycardia (AHA: <60 slow, <40 severe)
         static let heartRateCritical: Double = 40
         static let heartRateWarning: Double = 50
         static let heartRateElevated: Double = 55
 
-        // Blood oxygen. WHO: < 90% is hypoxemia. Normal is 95–100%.
+        // WHO: <90% = hypoxemia
         static let bloodOxygenCritical: Double = 85
         static let bloodOxygenWarning: Double = 90
         static let bloodOxygenElevated: Double = 93
 
-        // Breathing rate. NIH: normal 12–20. NIAAA: < 8 is a sign of alcohol overdose.
+        // normal 12-20, NIAAA says <8 is an alcohol overdose sign
         static let respiratoryRateCritical: Double = 6
         static let respiratoryRateWarning: Double = 8
         static let respiratoryRateElevated: Double = 10
 
-        // High heart rate (tachycardia > 100). Very high values alongside other signs can
-        // indicate alcohol toxicity or withdrawal.
+        // really high HR + other signs can mean alcohol toxicity or withdrawal
         static let heartRateHighCritical: Double = 150
         static let heartRateHighWarning: Double = 130
         static let heartRateHighElevated: Double = 110
@@ -102,7 +94,6 @@ class CrisisAlgorithm {
         static let highScoreThreshold: Double = 45
         static let elevatedScoreThreshold: Double = 25
 
-        /// A full alert needs this many separate danger signs at the same time.
         static let minimumSignsForCritical = 2
     }
 
@@ -114,14 +105,13 @@ class CrisisAlgorithm {
         static let unresponsive: Double = 15
     }
 
-    /// Running tally for one assessment: score plus which separate vital signs fired.
     private struct Tally {
         var score: Double = 0
         var triggers: [String] = []
         var signs = 0
         var criticalSigns = 0
 
-        /// `points` at a vital's full weight means that sign is at its critical level.
+        // points >= fullWeight means that vital is at its critical level
         mutating func add(_ points: Double, _ trigger: String, fullWeight: Double? = nil) {
             score += points
             triggers.append(trigger)
@@ -133,8 +123,7 @@ class CrisisAlgorithm {
     private var recentSnapshots: [VitalSnapshot] = []
     private let maxSnapshotHistory = 30
 
-    /// Records the snapshot once, scores it for every addiction being tracked, and returns
-    /// the most serious result. Returns nil when there's no fresh data to judge.
+    // returns the worst result across all tracked addictions, nil if no fresh data
     func assess(_ snapshot: VitalSnapshot, for addictionTypes: [AddictionType]) -> CrisisAssessment? {
         guard snapshot.hasAnyVital, !addictionTypes.isEmpty else { return nil }
 
@@ -262,7 +251,6 @@ class CrisisAlgorithm {
         }
     }
 
-    // MARK: - Result
 
     private func buildAssessment(_ tally: Tally, type: AddictionType, timestamp: Date) -> CrisisAssessment {
         let clampedScore = min(100, max(0, tally.score))
@@ -278,12 +266,12 @@ class CrisisAlgorithm {
             riskLevel = .normal
         }
 
-        // One sensor alone (e.g. a loose watch band giving a bad SpO2 reading) is never enough.
+        // one sensor alone isn't enough (loose band = bad SpO2 readings)
         if riskLevel == .critical && tally.signs < Thresholds.minimumSignsForCritical {
             riskLevel = .high
         }
-        // Two different vitals both at critical levels is always an emergency, even when the
-        // third (breathing rate) isn't available — the Watch can't measure it while awake.
+        // 2 vitals both critical counts even w/o breathing rate, since the watch
+        // can't measure that while you're awake
         if tally.criticalSigns >= Thresholds.minimumSignsForCritical {
             riskLevel = .critical
         }
@@ -298,7 +286,7 @@ class CrisisAlgorithm {
         )
     }
 
-    /// Extra points when heart rate or oxygen has dropped sharply compared with earlier readings.
+    // bonus points if HR or O2 dropped fast vs earlier readings
     private func assessRapidDecline() -> Double {
         guard recentSnapshots.count >= 6 else { return 0 }
 

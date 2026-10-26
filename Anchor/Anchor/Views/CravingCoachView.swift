@@ -48,7 +48,6 @@ struct CravingCoachView: View {
         }
     }
 
-    // MARK: - Header
 
     private var header: some View {
         HStack(spacing: 12) {
@@ -90,7 +89,6 @@ struct CravingCoachView: View {
             .padding(.bottom, 8)
     }
 
-    // MARK: - Conversation
 
     private var conversation: some View {
         ScrollViewReader { proxy in
@@ -163,7 +161,6 @@ struct CravingCoachView: View {
             .padding(.top, 4)
     }
 
-    // MARK: - Tools + input
 
     private var toolRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -238,7 +235,6 @@ struct CravingCoachView: View {
         draft = ""
     }
 
-    // MARK: - Unavailable
 
     private func unavailableView(_ reason: String) -> some View {
         ScrollView {
@@ -267,10 +263,10 @@ struct CravingCoachView: View {
     }
 }
 
-// MARK: - Safety card (fixed text, never AI-generated)
+// safety card text is hardcoded on purpose, never from the model
 
 struct SafetyCard: View {
-    /// nil = the general "help is available" card.
+    // nil = generic help card
     let flag: SafetyCheck.Flag?
     let user: UserData?
 
@@ -369,7 +365,6 @@ struct SafetyCard: View {
     }
 }
 
-// MARK: - Small helpers
 
 private struct TypingDots: View {
     let color: Color

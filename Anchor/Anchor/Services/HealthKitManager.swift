@@ -17,12 +17,10 @@ class HealthKitManager: ObservableObject {
     @Published var heartRateHistory: [(Date, Double)] = []
     @Published var oxygenHistory: [(Date, Double)] = []
 
-    /// Called on the main thread whenever a new heart rate, oxygen, or breathing sample arrives —
-    /// including when HealthKit wakes the app in the background.
+    // main thread, also fires on background wakes
     var onNewVitals: (() -> Void)?
 
-    /// How old a reading can be and still count as "now". Heart rate streams every few seconds
-    /// during a Watch monitoring session; SpO2 and breathing rate are measured less often.
+    // max age to count as current. HR streams every few sec, SpO2/breathing are way less often
     struct Freshness {
         static let heartRate: TimeInterval = 5 * 60
         static let bloodOxygen: TimeInterval = 15 * 60
@@ -60,7 +58,7 @@ class HealthKitManager: ObservableObject {
     }
 
     func startMonitoring() {
-        stopMonitoring() // Clean up any existing queries first
+        stopMonitoring()
 
         heartRateQuery = startAnchoredQuery(for: heartRateType) { [weak self] value, date in
             self?.currentMetrics.heartRate = value
@@ -95,8 +93,7 @@ class HealthKitManager: ObservableObject {
         healthStore.disableAllBackgroundDelivery { _, _ in }
     }
 
-    /// Only readings recent enough to describe the person *right now*. Old readings are
-    /// dropped instead of being re-judged over and over.
+    // drop stale readings so we don't keep re-judging old data
     func freshSnapshot(fallDetected: Bool, now: Date = Date()) -> VitalSnapshot {
         func fresh(_ value: Double?, _ date: Date?, _ maxAge: TimeInterval) -> Double? {
             guard let value, let date, now.timeIntervalSince(date) <= maxAge else { return nil }
@@ -113,14 +110,12 @@ class HealthKitManager: ObservableObject {
         )
     }
 
-    // MARK: - Queries
 
     private func appendHistory(_ history: ReferenceWritableKeyPath<HealthKitManager, [(Date, Double)]>, _ date: Date, _ value: Double) {
         self[keyPath: history].append((date, value))
         if self[keyPath: history].count > 100 { self[keyPath: history].removeFirst() }
     }
 
-    /// Streams new samples of `type` and reports the newest one (by when it was measured).
     private func startAnchoredQuery(
         for type: HKQuantityType,
         unit: HKUnit? = nil,
@@ -159,9 +154,8 @@ class HealthKitManager: ObservableObject {
         return query
     }
 
-    /// Lets HealthKit wake Anchor when new vitals are saved, even if the app isn't open.
-    /// iOS decides how often this actually happens, so the Watch app (which runs a live
-    /// workout session) is the main real-time monitor; this is the iPhone's backup.
+    // iOS decides how often background delivery actually fires, so this is just a backup.
+    // the watch workout session is the real time monitor
     private func startBackgroundDelivery() {
         for type in crisisTypes {
             let observer = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, completion, error in
@@ -182,7 +176,6 @@ class HealthKitManager: ObservableObject {
         }
     }
 
-    /// Pulls the newest sample of each vital and runs the crisis check on it.
     func refreshLatestVitals() async {
         async let hr = fetchLatest(type: heartRateType, unit: bpmUnit)
         async let spo2 = fetchLatest(type: oxygenType, unit: .percent())

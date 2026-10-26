@@ -1,6 +1,5 @@
 import SwiftUI
 import HealthKit
-import UIKit
 
 struct HealthDashboardView: View {
     @ObservedObject var healthKit = HealthKitManager.shared
@@ -334,7 +333,7 @@ struct HealthDashboardView: View {
         }
     }
 
-    /// Lets people (and their families) see exactly what happens in an alert before they need it.
+    // so people/families can see what an alert looks like before a real one
     private var testAlertButton: some View {
         Button(action: runTestAlert) {
             HStack(spacing: 8) {

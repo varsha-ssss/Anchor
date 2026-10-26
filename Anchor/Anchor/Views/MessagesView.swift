@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Messages View (Letters to future self)
-
+// letters to future self
 struct MessagesView: View {
     @ObservedObject var store: DataStore
     @State private var writing = false

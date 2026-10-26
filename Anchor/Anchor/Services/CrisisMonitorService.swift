@@ -27,11 +27,10 @@ class CrisisMonitorService: ObservableObject {
         isMonitoring = true
         activeAddictionTypes = types
 
-        // Ask up front so no permission prompt can appear in the middle of an emergency.
+        // ask now so a permission popup doesn't show up mid-emergency
         EmergencyService.requestNotificationPermission()
         LocationProvider.shared.requestPermission()
 
-        // Judge each new reading as it arrives instead of re-checking old values on a timer.
         healthKit.onNewVitals = { [weak self] in self?.performAssessment() }
         healthKit.startMonitoring()
 
@@ -75,8 +74,7 @@ class CrisisMonitorService: ObservableObject {
         performAssessment()
     }
 
-    /// The Watch runs the same algorithm on its live heart-rate stream and tells the phone when it
-    /// finds a crisis.
+    // watch runs the same algorithm on live HR and pings us here
     func reportWatchCrisis(data: [String: Any]) {
         let type = (data["addictionType"] as? String).flatMap(AddictionType.init(rawValue:))
             ?? activeAddictionTypes.first ?? .drugs

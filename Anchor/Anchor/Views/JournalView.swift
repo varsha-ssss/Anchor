@@ -7,7 +7,6 @@ struct JournalView: View {
     @State private var entryText = ""
     @State private var expandedId: UUID?
 
-    // Craving state
     @State private var loggingCraving = false
     @State private var cravingIntensity = 3
     @State private var cravingTrigger = ""

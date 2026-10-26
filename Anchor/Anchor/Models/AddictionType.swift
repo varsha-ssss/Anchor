@@ -39,7 +39,6 @@ enum AddictionType: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Spoken to the user at the start of the 30-second check.
     var crisisSpeechAlert: String {
         switch self {
         case .nicotine: return "Health alert. Are you okay? Tap I'm okay on your phone."
@@ -48,7 +47,7 @@ enum AddictionType: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Spoken on repeat once the user hasn't responded, aimed at anyone who can hear the phone.
+    // for bystanders, plays on loop after the user doesn't respond
     var bystanderSpeech: String {
         switch self {
         case .nicotine:
@@ -60,7 +59,7 @@ enum AddictionType: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// On-screen version of `bystanderSpeech`. Steps follow SAMHSA (overdose) and NIAAA (alcohol) guidance.
+    // steps from SAMHSA (overdose) / NIAAA (alcohol)
     var bystanderInstructions: String {
         switch self {
         case .nicotine:
@@ -72,7 +71,7 @@ enum AddictionType: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Flat fallback used when no usage-frequency answer was collected (e.g. data saved before this existed).
+    // fallback for older saved data that has no frequency answer
     var moneySavedPerDay: Double {
         switch self {
         case .nicotine: return 7.50
@@ -81,7 +80,7 @@ enum AddictionType: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    /// Rough US-average daily cost per `usageFrequencyOptions` answer, keyed to what the user reported at onboarding.
+    // rough US avg $/day for each frequency option
     private static let dailyCostByFrequency: [AddictionType: [String: Double]] = [
         .nicotine: [
             "1-5 cigarettes/day": 1.50,

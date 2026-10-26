@@ -73,7 +73,7 @@ struct EmergencyView: View {
         .onAppear(perform: startAnimations)
     }
 
-    // MARK: - Phase 1: "Are you okay?"
+    // phase 1 - "are you okay?"
 
     private var checkingContent: some View {
         VStack(spacing: 0) {
@@ -125,7 +125,7 @@ struct EmergencyView: View {
         }
     }
 
-    // MARK: - Phase 2: no response, ask anyone nearby for help
+    // phase 2 - no response, talk to whoever's nearby
 
     private var needsHelpContent: some View {
         VStack(spacing: 12) {
@@ -276,7 +276,7 @@ struct EmergencyView: View {
     }
 }
 
-/// Pre-filled iMessage/SMS sheet. iOS requires a person to tap Send — apps can't text silently.
+// iOS won't let apps send texts silently, user has to hit Send
 struct MessageComposer: UIViewControllerRepresentable {
     let recipients: [String]
     let body: String
